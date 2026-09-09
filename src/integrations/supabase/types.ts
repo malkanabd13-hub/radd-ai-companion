@@ -14,7 +14,145 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agents: {
+        Row: {
+          active: boolean
+          ai_name: string
+          created_at: string
+          employee_number: string | null
+          greeting: string
+          id: string
+          instance_name: string
+          job: string
+          persona: string
+          status: string
+          updated_at: string
+          user_id: string
+          whatsapp_number: string
+        }
+        Insert: {
+          active?: boolean
+          ai_name: string
+          created_at?: string
+          employee_number?: string | null
+          greeting?: string
+          id?: string
+          instance_name: string
+          job?: string
+          persona?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          whatsapp_number: string
+        }
+        Update: {
+          active?: boolean
+          ai_name?: string
+          created_at?: string
+          employee_number?: string | null
+          greeting?: string
+          id?: string
+          instance_name?: string
+          job?: string
+          persona?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
+      knowledge_files: {
+        Row: {
+          agent_id: string
+          content: string
+          created_at: string
+          file_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          content?: string
+          created_at?: string
+          file_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          content?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_files_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          agent_id: string
+          content: string
+          created_at: string
+          id: string
+          remote_jid: string
+          role: string
+        }
+        Insert: {
+          agent_id: string
+          content: string
+          created_at?: string
+          id?: string
+          remote_jid: string
+          role: string
+        }
+        Update: {
+          agent_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          remote_jid?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

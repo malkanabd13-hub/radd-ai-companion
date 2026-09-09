@@ -13,12 +13,12 @@ function extractText(message: Record<string, unknown> | undefined): string {
   if (!message) return "";
   const m = message as Record<string, any>;
   return (
-    m.conversation ??
-    m.extendedTextMessage?.text ??
-    m.imageMessage?.caption ??
-    m.videoMessage?.caption ??
-    m.buttonsResponseMessage?.selectedDisplayText ??
-    m.listResponseMessage?.title ??
+    m["conversation"] ??
+    m["extendedTextMessage"]?.text ??
+    m["imageMessage"]?.caption ??
+    m["videoMessage"]?.caption ??
+    m["buttonsResponseMessage"]?.selectedDisplayText ??
+    m["listResponseMessage"]?.title ??
     ""
   );
 }

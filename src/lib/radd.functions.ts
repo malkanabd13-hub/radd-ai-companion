@@ -95,7 +95,9 @@ export const updateAgent = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const { error } = await context.supabase.from("agents").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id);
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    for (const [k, v] of Object.entries(rest)) if (v !== undefined) patch[k] = v;
+    const { error } = await context.supabase.from("agents").update(patch).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

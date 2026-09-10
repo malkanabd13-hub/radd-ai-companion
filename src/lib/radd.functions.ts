@@ -47,6 +47,11 @@ export const getAgent = createServerFn({ method: "GET" })
       .select("id, file_name, created_at, content")
       .eq("agent_id", data.id)
       .order("created_at", { ascending: false });
+    const { data: sources } = await context.supabase
+      .from("data_sources")
+      .select("id, label, project_url, created_at")
+      .eq("agent_id", data.id)
+      .order("created_at", { ascending: false });
     return {
       agent,
       files: (files ?? []).map((f) => ({
@@ -55,7 +60,43 @@ export const getAgent = createServerFn({ method: "GET" })
         created_at: f.created_at,
         size: f.content.length,
       })),
+      sources: sources ?? [],
     };
+  });
+
+export const addDataSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        agent_id: z.string().uuid(),
+        project_url: z.string().min(8),
+        anon_key: z.string().min(10),
+        label: z.string().optional().default(""),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { verifySource } = await import("./supabase-source.server");
+    const { tables } = await verifySource(data.project_url, data.anon_key);
+    const { error } = await context.supabase.from("data_sources").insert({
+      agent_id: data.agent_id,
+      user_id: context.userId,
+      project_url: data.project_url.trim().replace(/\/+$/, ""),
+      anon_key: data.anon_key.trim(),
+      label: data.label || new URL(data.project_url.trim()).hostname,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, tables: tables.length };
+  });
+
+export const deleteDataSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("data_sources").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const createAgent = createServerFn({ method: "POST" })

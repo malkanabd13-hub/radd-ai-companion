@@ -44,7 +44,10 @@ function AuthPage() {
       password,
     });
     setLoading(false);
-    if (error) return toast.error("رقم الجوال أو كلمة المرور غير صحيحة");
+    if (error) {
+      toast.error("رقم الجوال أو كلمة المرور غير صحيحة");
+      return;
+    }
     toast.success("أهلاً بك مجددًا");
     navigate({ to: "/dashboard" });
   }
@@ -52,8 +55,14 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     const digits = normalizePhone(phone);
-    if (digits.length < 8) return toast.error("أدخل رقم جوال صحيح مع رمز الدولة");
-    if (password.length < 6) return toast.error("كلمة المرور 6 أحرف على الأقل");
+    if (digits.length < 8) {
+      toast.error("أدخل رقم جوال صحيح مع رمز الدولة");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("كلمة المرور 6 أحرف على الأقل");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: phoneToEmail(phone),
@@ -62,16 +71,20 @@ function AuthPage() {
     });
     if (error) {
       setLoading(false);
-      return toast.error(
+      toast.error(
         error.message.includes("already") ? "هذا الرقم مسجّل مسبقًا" : "تعذّر إنشاء الحساب",
       );
+      return;
     }
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: phoneToEmail(phone),
       password,
     });
     setLoading(false);
-    if (signInError) return toast.error("تم إنشاء الحساب، حاول تسجيل الدخول");
+    if (signInError) {
+      toast.error("تم إنشاء الحساب، حاول تسجيل الدخول");
+      return;
+    }
     toast.success("تم إنشاء حسابك");
     navigate({ to: "/dashboard" });
   }

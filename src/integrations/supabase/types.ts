@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           employee_number: string | null
           greeting: string
+          handoff_message: string
           id: string
           instance_name: string
           job: string
@@ -36,6 +37,7 @@ export type Database = {
           created_at?: string
           employee_number?: string | null
           greeting?: string
+          handoff_message?: string
           id?: string
           instance_name: string
           job?: string
@@ -51,6 +53,7 @@ export type Database = {
           created_at?: string
           employee_number?: string | null
           greeting?: string
+          handoff_message?: string
           id?: string
           instance_name?: string
           job?: string
@@ -61,6 +64,44 @@ export type Database = {
           whatsapp_number?: string
         }
         Relationships: []
+      }
+      data_sources: {
+        Row: {
+          agent_id: string
+          anon_key: string
+          created_at: string
+          id: string
+          label: string
+          project_url: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          anon_key: string
+          created_at?: string
+          id?: string
+          label?: string
+          project_url: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          anon_key?: string
+          created_at?: string
+          id?: string
+          label?: string
+          project_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_sources_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       knowledge_files: {
         Row: {

@@ -60,6 +60,22 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           .order("created_at", { ascending: false })
           .limit(12);
 
+        const { data: sources } = await supabaseAdmin
+          .from("data_sources")
+          .select("label, project_url, anon_key")
+          .eq("agent_id", agent.id);
+
+        let dbKnowledge = "";
+        if (sources && sources.length) {
+          const { snapshot } = await import("@/lib/supabase-source.server");
+          const chunks: string[] = [];
+          for (const s of sources.slice(0, 3)) {
+            const snap = await snapshot(s.project_url, s.anon_key);
+            if (snap) chunks.push(`### قاعدة بيانات ${s.label}\n${snap}`);
+          }
+          dbKnowledge = chunks.join("\n\n").slice(0, 40000);
+        }
+
         const isFirst = !history || history.length === 0;
         const knowledge = (files ?? [])
           .map((f) => `### ${f.file_name}\n${f.content.slice(0, 20000)}`)
@@ -75,11 +91,12 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
             ? `هذه أول رسالة من العميل، ابدأ ردّك بالترحيب التالي مع ذكر اسمك: ${agent.greeting}`
             : `عرّف بنفسك باسم ${agent.ai_name} عند الحاجة فقط.`,
           agent.employee_number
-            ? `إذا طلب العميل التحدث مع موظف بشري، أخبره برقم الموظف: ${agent.employee_number}`
-            : "",
+            ? `إذا طلب العميل التحدث مع موظف بشري أو كانت حالته تستدعي تدخل موظف، لا تعطه أي رقم تواصل إطلاقًا، بل أخبره أنه سيتم تحويله لموظف، وأضف في آخر ردّك السطر التالي حرفيًا: [HANDOFF]\nملخص: <ملخص قصير لطلب العميل>\nممنوع منعًا باتًا ذكر أي أرقام هواتف داخلية أو أرقام موظفين.`
+            : "لا تعطِ العميل أي أرقام تواصل داخلية.",
           knowledge
             ? `اعتمد في إجاباتك على المعلومات التالية، ولا تخترع معلومات غير موجودة فيها:\n${knowledge}`
             : "",
+          dbKnowledge ? `بيانات من قاعدة بيانات العميل (استخدمها للإجابة):\n${dbKnowledge}` : "",
         ]
           .filter(Boolean)
           .join("\n");

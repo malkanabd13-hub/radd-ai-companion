@@ -1,5 +1,5 @@
 const base = () => (process.env["EVOLUTION_API_URL"] ?? "").replace(/\/+$/, "");
-const key = () => process.env["EVOLUTION_API_KEY"] ?? "";
+const key = () => process.env["AUTHENTICATION_API_KEY"] ?? process.env["EVOLUTION_API_KEY"] ?? "";
 
 async function call(path: string, init?: RequestInit) {
   if (!base() || !key()) throw new Error("لم يتم ضبط إعدادات Evolution API");

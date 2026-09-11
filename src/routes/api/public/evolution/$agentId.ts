@@ -62,7 +62,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
 
         const { data: sources } = await supabaseAdmin
           .from("data_sources")
-          .select("label, project_url, anon_key")
+          .select("label, project_url, anon_key, tables")
           .eq("agent_id", agent.id);
 
         let dbKnowledge = "";
@@ -70,7 +70,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           const { snapshot } = await import("@/lib/supabase-source.server");
           const chunks: string[] = [];
           for (const s of sources.slice(0, 3)) {
-            const snap = await snapshot(s.project_url, s.anon_key);
+            const snap = await snapshot(s.project_url, s.anon_key, s.tables ?? []);
             if (snap) chunks.push(`### قاعدة بيانات ${s.label}\n${snap}`);
           }
           dbKnowledge = chunks.join("\n\n").slice(0, 40000);

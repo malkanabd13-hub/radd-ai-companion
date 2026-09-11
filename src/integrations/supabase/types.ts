@@ -73,6 +73,7 @@ export type Database = {
           id: string
           label: string
           project_url: string
+          tables: string[]
           user_id: string
         }
         Insert: {
@@ -82,6 +83,7 @@ export type Database = {
           id?: string
           label?: string
           project_url: string
+          tables?: string[]
           user_id: string
         }
         Update: {
@@ -91,6 +93,7 @@ export type Database = {
           id?: string
           label?: string
           project_url?: string
+          tables?: string[]
           user_id?: string
         }
         Relationships: [

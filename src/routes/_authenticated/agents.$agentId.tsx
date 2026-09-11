@@ -48,11 +48,24 @@ function AgentPage() {
   const upload = useServerFn(addKnowledge);
   const addText = useServerFn(addKnowledgeText);
   const removeFile = useServerFn(deleteKnowledge);
+  const addSource = useServerFn(addDataSource);
+  const removeSource = useServerFn(deleteDataSource);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [pairing, setPairing] = useState<string | null>(null);
   const [note, setNote] = useState({ title: "", content: "" });
+  const [src, setSrc] = useState({ project_url: "", anon_key: "" });
+
+  const sourceMutation = useMutation({
+    mutationFn: () => addSource({ data: { agent_id: agentId, ...src, label: "" } }),
+    onSuccess: (res) => {
+      setSrc({ project_url: "", anon_key: "" });
+      toast.success(`تم ربط قاعدة البيانات (${res.tables} جدول)`);
+      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["agent", agentId],

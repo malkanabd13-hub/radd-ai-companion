@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowRight, FileText, QrCode, RefreshCw, Trash2, Upload } from "lucide-react";
+import { ArrowRight, Database, FileText, QrCode, RefreshCw, Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agents/$agentId")({
   head: () => ({

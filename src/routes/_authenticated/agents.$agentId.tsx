@@ -11,6 +11,8 @@ import {
   addKnowledge,
   addKnowledgeText,
   deleteKnowledge,
+  addDataSource,
+  deleteDataSource,
 } from "@/lib/radd.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowRight, FileText, QrCode, RefreshCw, Trash2, Upload } from "lucide-react";
+import { ArrowRight, Database, FileText, QrCode, RefreshCw, Trash2, Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/agents/$agentId")({
   head: () => ({
@@ -46,11 +48,24 @@ function AgentPage() {
   const upload = useServerFn(addKnowledge);
   const addText = useServerFn(addKnowledgeText);
   const removeFile = useServerFn(deleteKnowledge);
+  const addSource = useServerFn(addDataSource);
+  const removeSource = useServerFn(deleteDataSource);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [pairing, setPairing] = useState<string | null>(null);
   const [note, setNote] = useState({ title: "", content: "" });
+  const [src, setSrc] = useState({ project_url: "", anon_key: "" });
+
+  const sourceMutation = useMutation({
+    mutationFn: () => addSource({ data: { agent_id: agentId, ...src, label: "" } }),
+    onSuccess: (res) => {
+      setSrc({ project_url: "", anon_key: "" });
+      toast.success(`تم ربط قاعدة البيانات (${res.tables} جدول)`);
+      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["agent", agentId],
@@ -321,6 +336,61 @@ function AgentPage() {
                 </Button>
               </div>
             ))}
+          </div>
+
+          <div className="glow-card rounded-3xl border border-border bg-card p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold">ربط قاعدة بيانات Supabase</h3>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              فقط رابط المشروع والمفتاح العام (anon key)، وسيقرأ المساعد بياناتك للإجابة.
+            </p>
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!src.project_url || !src.anon_key) return;
+                sourceMutation.mutate();
+              }}
+            >
+              <Input
+                placeholder="https://xxxx.supabase.co"
+                dir="ltr"
+                value={src.project_url}
+                onChange={(e) => setSrc({ ...src, project_url: e.target.value })}
+              />
+              <Input
+                placeholder="anon key"
+                dir="ltr"
+                value={src.anon_key}
+                onChange={(e) => setSrc({ ...src, anon_key: e.target.value })}
+              />
+              <Button type="submit" disabled={sourceMutation.isPending} className="brand-gradient font-bold text-primary-foreground">
+                {sourceMutation.isPending ? "جارٍ التحقق..." : "ربط قاعدة البيانات"}
+              </Button>
+            </form>
+
+            <div className="mt-4 space-y-2">
+              {data.sources.map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-2xl border border-border p-3">
+                  <div>
+                    <p className="font-bold">{s.label}</p>
+                    <p dir="ltr" className="text-xs text-muted-foreground">{s.project_url}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      await removeSource({ data: { id: s.id } });
+                      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </TabsContent>
       </Tabs>

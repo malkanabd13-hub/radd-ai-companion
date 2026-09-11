@@ -337,6 +337,61 @@ function AgentPage() {
               </div>
             ))}
           </div>
+
+          <div className="glow-card rounded-3xl border border-border bg-card p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              <h3 className="text-lg font-bold">ربط قاعدة بيانات Supabase</h3>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              فقط رابط المشروع والمفتاح العام (anon key)، وسيقرأ المساعد بياناتك للإجابة.
+            </p>
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!src.project_url || !src.anon_key) return;
+                sourceMutation.mutate();
+              }}
+            >
+              <Input
+                placeholder="https://xxxx.supabase.co"
+                dir="ltr"
+                value={src.project_url}
+                onChange={(e) => setSrc({ ...src, project_url: e.target.value })}
+              />
+              <Input
+                placeholder="anon key"
+                dir="ltr"
+                value={src.anon_key}
+                onChange={(e) => setSrc({ ...src, anon_key: e.target.value })}
+              />
+              <Button type="submit" disabled={sourceMutation.isPending} className="brand-gradient font-bold text-primary-foreground">
+                {sourceMutation.isPending ? "جارٍ التحقق..." : "ربط قاعدة البيانات"}
+              </Button>
+            </form>
+
+            <div className="mt-4 space-y-2">
+              {data.sources.map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-2xl border border-border p-3">
+                  <div>
+                    <p className="font-bold">{s.label}</p>
+                    <p dir="ltr" className="text-xs text-muted-foreground">{s.project_url}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      await removeSource({ data: { id: s.id } });
+                      qc.invalidateQueries({ queryKey: ["agent", agentId] });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

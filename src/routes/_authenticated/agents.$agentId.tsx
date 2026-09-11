@@ -11,6 +11,8 @@ import {
   addKnowledge,
   addKnowledgeText,
   deleteKnowledge,
+  addDataSource,
+  deleteDataSource,
 } from "@/lib/radd.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

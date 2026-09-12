@@ -383,6 +383,10 @@ function AgentPage() {
                   <div>
                     <p className="font-bold">{s.label}</p>
                     <p dir="ltr" className="text-xs text-muted-foreground">{s.project_url}</p>
+                    <p className="text-xs text-muted-foreground">
+                      الجداول ({s.tables?.length ?? 0}):{" "}
+                      <span dir="ltr">{(s.tables ?? []).join("، ") || "—"}</span>
+                    </p>
                   </div>
                   <Button
                     variant="ghost"

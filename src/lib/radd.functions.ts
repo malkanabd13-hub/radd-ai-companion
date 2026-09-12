@@ -73,17 +73,23 @@ export const addDataSource = createServerFn({ method: "POST" })
         project_url: z.string().min(8),
         anon_key: z.string().min(10),
         label: z.string().optional().default(""),
+        tables: z.string().optional().default(""),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { verifySource } = await import("./supabase-source.server");
-    const { tables } = await verifySource(data.project_url, data.anon_key);
+    const wanted = (data.tables ?? "")
+      .split(/[,\n،]/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const { tables } = await verifySource(data.project_url, data.anon_key, wanted);
     const { error } = await context.supabase.from("data_sources").insert({
       agent_id: data.agent_id,
       user_id: context.userId,
       project_url: data.project_url.trim().replace(/\/+$/, ""),
       anon_key: data.anon_key.trim(),
+      tables,
       label: data.label || new URL(data.project_url.trim()).hostname,
     });
     if (error) throw new Error(error.message);

@@ -87,6 +87,15 @@ export async function setWebhook(instanceName: string, webhookUrl: string) {
   });
 }
 
+/** Downloads a media message (audio/image/video/document) as base64. */
+export async function getMediaBase64(instanceName: string, messageKeyId: string) {
+  const res = (await call(`/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceName)}`, {
+    method: "POST",
+    body: JSON.stringify({ message: { key: { id: messageKeyId } }, convertToMp4: false }),
+  })) as { base64?: string; mimetype?: string; mediaType?: string };
+  return { base64: res?.base64 ?? "", mimetype: res?.mimetype ?? "" };
+}
+
 export async function sendText(instanceName: string, number: string, text: string) {
   return call(`/message/sendText/${encodeURIComponent(instanceName)}`, {
     method: "POST",

@@ -366,6 +366,12 @@ function AgentPage() {
                 value={src.anon_key}
                 onChange={(e) => setSrc({ ...src, anon_key: e.target.value })}
               />
+              <Input
+                placeholder="أسماء الجداول (اختياري، افصل بينها بفاصلة)"
+                dir="ltr"
+                value={src.tables}
+                onChange={(e) => setSrc({ ...src, tables: e.target.value })}
+              />
               <Button type="submit" disabled={sourceMutation.isPending} className="brand-gradient font-bold text-primary-foreground">
                 {sourceMutation.isPending ? "جارٍ التحقق..." : "ربط قاعدة البيانات"}
               </Button>

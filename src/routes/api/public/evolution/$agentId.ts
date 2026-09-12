@@ -102,12 +102,13 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
         let dbKnowledge = "";
         if (sources && sources.length) {
           const { snapshot } = await import("@/lib/supabase-source.server");
-          const chunks: string[] = [];
-          for (const s of sources.slice(0, 3)) {
-            const snap = await snapshot(s.project_url, s.anon_key, s.tables ?? []);
-            if (snap) chunks.push(`### قاعدة بيانات ${s.label}\n${snap}`);
-          }
-          dbKnowledge = chunks.join("\n\n").slice(0, 40000);
+          const chunks = await Promise.all(
+            sources.map(async (s) => {
+              const snap = await snapshot(s.project_url, s.anon_key, s.tables ?? []);
+              return snap ? `### قاعدة بيانات ${s.label}\n${snap}` : "";
+            }),
+          );
+          dbKnowledge = chunks.filter(Boolean).join("\n\n").slice(0, 300000);
         }
 
         const isFirst = !history || history.length === 0;

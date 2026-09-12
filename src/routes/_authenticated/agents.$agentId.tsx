@@ -55,12 +55,12 @@ function AgentPage() {
   const [qr, setQr] = useState<string | null>(null);
   const [pairing, setPairing] = useState<string | null>(null);
   const [note, setNote] = useState({ title: "", content: "" });
-  const [src, setSrc] = useState({ project_url: "", anon_key: "" });
+  const [src, setSrc] = useState({ project_url: "", anon_key: "", tables: "" });
 
   const sourceMutation = useMutation({
     mutationFn: () => addSource({ data: { agent_id: agentId, ...src, label: "" } }),
     onSuccess: (res) => {
-      setSrc({ project_url: "", anon_key: "" });
+      setSrc({ project_url: "", anon_key: "", tables: "" });
       toast.success(`تم ربط قاعدة البيانات (${res.tables} جدول)`);
       qc.invalidateQueries({ queryKey: ["agent", agentId] });
     },
@@ -365,6 +365,12 @@ function AgentPage() {
                 dir="ltr"
                 value={src.anon_key}
                 onChange={(e) => setSrc({ ...src, anon_key: e.target.value })}
+              />
+              <Input
+                placeholder="أسماء الجداول (اختياري، افصل بينها بفاصلة)"
+                dir="ltr"
+                value={src.tables}
+                onChange={(e) => setSrc({ ...src, tables: e.target.value })}
               />
               <Button type="submit" disabled={sourceMutation.isPending} className="brand-gradient font-bold text-primary-foreground">
                 {sourceMutation.isPending ? "جارٍ التحقق..." : "ربط قاعدة البيانات"}

@@ -24,19 +24,47 @@ async function rest(url: string, key: string, path: string) {
 
 /** Try to discover tables from the OpenAPI root. Many projects restrict this to service_role. */
 export async function listTables(url: string, key: string): Promise<string[]> {
-  try {
-    const spec = (await rest(url, key, "/")) as
-      | { definitions?: Record<string, unknown>; paths?: Record<string, unknown> }
-      | null;
-    if (!spec) return [];
-    const fromDefs = spec.definitions ? Object.keys(spec.definitions) : [];
-    if (fromDefs.length) return fromDefs;
-    return Object.keys(spec.paths ?? {})
-      .filter((p) => p.startsWith("/") && p.length > 1 && !p.startsWith("/rpc"))
-      .map((p) => p.slice(1));
-  } catch {
-    return [];
+  const accepts = ["application/openapi+json", "application/json"];
+  for (const accept of accepts) {
+    try {
+      const res = await fetch(`${clean(url)}/rest/v1/`, {
+        headers: { ...headers(key), Accept: accept },
+      });
+      if (!res.ok) continue;
+      const spec = (await res.json()) as {
+        definitions?: Record<string, unknown>;
+        paths?: Record<string, unknown>;
+        components?: { schemas?: Record<string, unknown> };
+      };
+      const fromDefs = spec.definitions ? Object.keys(spec.definitions) : [];
+      if (fromDefs.length) return fromDefs;
+      const fromComponents = spec.components?.schemas ? Object.keys(spec.components.schemas) : [];
+      if (fromComponents.length) return fromComponents;
+      const fromPaths = Object.keys(spec.paths ?? {})
+        .filter((p) => p.startsWith("/") && p.length > 1 && !p.startsWith("/rpc"))
+        .map((p) => p.slice(1));
+      if (fromPaths.length) return fromPaths;
+    } catch {
+      /* try next */
+    }
   }
+  return [];
+}
+
+/** Keeps only the tables the anon key can actually read. */
+async function readable(url: string, key: string, tables: string[]) {
+  const ok: string[] = [];
+  await Promise.all(
+    tables.map(async (t) => {
+      try {
+        await rest(url, key, `/${encodeURIComponent(t)}?select=*&limit=1`);
+        ok.push(t);
+      } catch {
+        /* not readable */
+      }
+    }),
+  );
+  return ok;
 }
 
 /** Checks the URL + key pair without needing service_role privileges. */
@@ -52,49 +80,51 @@ export async function verifySource(url: string, key: string, tables: string[] = 
     throw new Error("المفتاح غير صحيح، استخدم مفتاح anon / publishable الخاص بالمشروع");
   }
 
-  const discovered = await listTables(url, key);
-  const list = tables.length ? tables : discovered;
-
-  // If tables were given, make sure at least one is readable.
-  if (tables.length) {
-    const readable: string[] = [];
-    for (const t of tables) {
-      try {
-        await rest(url, key, `/${encodeURIComponent(t)}?select=*&limit=1`);
-        readable.push(t);
-      } catch {
-        /* not readable */
-      }
-    }
-    if (!readable.length) {
-      throw new Error("لم نتمكن من قراءة أي جدول من الجداول المحددة، تأكد من الأسماء وصلاحيات القراءة");
-    }
-    return { tables: readable };
+  const wanted = tables.length ? tables : await listTables(url, key);
+  if (!wanted.length) {
+    throw new Error(
+      "تم قبول المفتاح لكن لم نتمكن من اكتشاف الجداول تلقائيًا، اكتب أسماء الجداول يدويًا مفصولة بفاصلة",
+    );
   }
 
+  const list = await readable(url, key, wanted);
+  if (!list.length) {
+    throw new Error(
+      "لم نتمكن من قراءة أي جدول، تأكد من أسماء الجداول ومن وجود سياسة قراءة عامة (anon) عليها",
+    );
+  }
   return { tables: list };
 }
 
-/** Pulls a compact snapshot of the readable tables to feed the AI. */
+/** Pulls a full snapshot of the readable tables to feed the AI. */
 export async function snapshot(
   url: string,
   key: string,
   tables: string[] = [],
-  maxTables = 6,
-  rowsPerTable = 15,
+  maxTables = 25,
+  rowsPerTable = 300,
 ) {
   const list = tables.length ? tables : await listTables(url, key);
   if (!list.length) return "";
   const parts: string[] = [];
   for (const t of list.slice(0, maxTables)) {
     try {
-      const rows = (await rest(url, key, `/${encodeURIComponent(t)}?select=*&limit=${rowsPerTable}`)) as unknown[];
+      const rows = (await rest(
+        url,
+        key,
+        `/${encodeURIComponent(t)}?select=*&limit=${rowsPerTable}`,
+      )) as unknown[];
       if (Array.isArray(rows) && rows.length) {
-        parts.push(`#### جدول ${t}\n${JSON.stringify(rows).slice(0, 6000)}`);
+        const columns = Object.keys(rows[0] as Record<string, unknown>);
+        parts.push(
+          `#### جدول ${t}\nالأعمدة: ${columns.join(", ")}\nعدد الصفوف المعروضة: ${rows.length}\n${JSON.stringify(rows).slice(0, 60000)}`,
+        );
+      } else if (Array.isArray(rows)) {
+        parts.push(`#### جدول ${t}\n(لا توجد صفوف متاحة)`);
       }
     } catch {
       /* table not readable with anon key */
     }
   }
-  return parts.join("\n\n").slice(0, 30000);
+  return parts.join("\n\n").slice(0, 250000);
 }

@@ -49,7 +49,7 @@ export const getAgent = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     const { data: sources } = await context.supabase
       .from("data_sources")
-      .select("id, label, project_url, created_at")
+      .select("id, label, project_url, tables, created_at")
       .eq("agent_id", data.id)
       .order("created_at", { ascending: false });
     return {

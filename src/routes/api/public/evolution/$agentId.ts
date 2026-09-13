@@ -152,46 +152,56 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
 
         const userText = text.trim() || (media ? `(أرسل العميل ${mediaLabel[media.kind]})` : "");
 
-        const userContent: unknown = mediaPart
-          ? [
-              { type: "text", text: userText },
-              mediaPart.mimetype.startsWith("image/")
-                ? { type: "image_url", image_url: { url: `data:${mediaPart.mimetype};base64,${mediaPart.data}` } }
-                : {
-                    type: "file",
-                    file: {
-                      filename: media?.kind === "audio" ? "voice-note" : "media",
-                      file_data: `data:${mediaPart.mimetype || "application/octet-stream"};base64,${mediaPart.data}`,
-                    },
-                  },
-            ]
-          : userText;
+        // Free Google Gemini API (gemini-2.5-flash): system instruction + contents parts.
+        const userParts: Record<string, unknown>[] = [{ text: userText }];
+        if (mediaPart) {
+          userParts.push({
+            inlineData: {
+              mimeType: mediaPart.mimetype || "application/octet-stream",
+              data: mediaPart.data,
+            },
+          });
+        }
 
-        const baseMessages = [
-          { role: "system", content: system },
-          ...[...(history ?? [])].reverse().map((h) => ({ role: h.role, content: h.content })),
-        ];
+        const historyContents = [...(history ?? [])].reverse().map((h) => ({
+          role: h.role === "assistant" ? "model" : "user",
+          parts: [{ text: h.content }],
+        }));
 
         let aiBlocked = false;
-        async function askAI(content: unknown) {
-          const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${process.env["LOVABLE_API_KEY"]}`,
+        async function askAI(parts: Record<string, unknown>[]) {
+          const apiKey = process.env["GEMINI_API_KEY"];
+          if (!apiKey) {
+            aiBlocked = true;
+            console.error("GEMINI_API_KEY missing");
+            return null;
+          }
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: system }] },
+                contents: [...historyContents, { role: "user", parts }],
+                generationConfig: { temperature: 0.7 },
+              }),
             },
-            body: JSON.stringify({
-              model: "google/gemini-3.8-flash",
-              messages: [...baseMessages, { role: "user", content }],
-            }),
-          });
+          );
           if (!res.ok) {
-            if (res.status === 402 || res.status === 403) aiBlocked = true;
+            if (res.status === 400 || res.status === 401 || res.status === 403) aiBlocked = true;
             console.error("AI error", res.status, (await res.text()).slice(0, 500));
             return null;
           }
-          const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-          return json.choices?.[0]?.message?.content?.trim() ?? "";
+          const json = (await res.json()) as {
+            candidates?: { content?: { parts?: { text?: string }[] } }[];
+          };
+          return (
+            json.candidates?.[0]?.content?.parts
+              ?.map((p) => p.text ?? "")
+              .join("")
+              .trim() ?? ""
+          );
         }
 
         let reply: string | null = null;

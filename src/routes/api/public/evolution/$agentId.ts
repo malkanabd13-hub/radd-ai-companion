@@ -108,7 +108,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
               return snap ? `### قاعدة بيانات ${s.label}\n${snap}` : "";
             }),
           );
-          dbKnowledge = chunks.filter(Boolean).join("\n\n").slice(0, 300000);
+          dbKnowledge = chunks.filter(Boolean).join("\n\n").slice(0, 200000);
         }
 
         const isFirst = !history || history.length === 0;

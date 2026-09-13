@@ -117,14 +117,7 @@ export async function snapshot(
       if (Array.isArray(rows) && rows.length) {
         const columns = Object.keys(rows[0] as Record<string, unknown>);
         parts.push(
-          `#### جدول ${t}\nالأعمدة: ${columns.join(", ")}\nعدد الصفوف المعروضة: ${rows.length}\n${JSON.stringify(rows).slice(0, 60000)}`,
-        );
-      } else if (Array.isArray(rows)) {
-        parts.push(`#### جدول ${t}\n(لا توجد صفوف متاحة)`);
-      }
-    } catch {
-      /* table not readable with anon key */
-    }
-  }
-  return parts.join("\n\n").slice(0, 250000);
+          `#### جدول ${t}\nالأعمدة: ${columns.join(", ")}\nعدد الصفوف المعروضة: ${rows.length}\n${JSON.stringify(rows).slice(0, 300000)}`,
+...
+  return parts.join("\n\n").slice(0, 600000);
 }

@@ -96,6 +96,14 @@ export async function verifySource(url: string, key: string, tables: string[] = 
   return { tables: list };
 }
 
+/** Formats one row as a compact readable line, skipping empty values. */
+function rowLine(row: Record<string, unknown>, i: number) {
+  const parts = Object.entries(row)
+    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`);
+  return `${i + 1}) ${parts.join(" | ")}`;
+}
+
 /** Pulls a full snapshot of the readable tables to feed the AI. */
 export async function snapshot(
   url: string,
@@ -103,11 +111,14 @@ export async function snapshot(
   tables: string[] = [],
   maxTables = 25,
   rowsPerTable = 2000,
+  totalBudget = 160000,
 ) {
   const list = tables.length ? tables : await listTables(url, key);
   if (!list.length) return "";
+  const picked = list.slice(0, maxTables);
+  const perTable = Math.max(4000, Math.floor(totalBudget / picked.length));
   const parts: string[] = [];
-  for (const t of list.slice(0, maxTables)) {
+  for (const t of picked) {
     try {
       const rows = (await rest(
         url,
@@ -116,8 +127,16 @@ export async function snapshot(
       )) as unknown[];
       if (Array.isArray(rows) && rows.length) {
         const columns = Object.keys(rows[0] as Record<string, unknown>);
+        const lines: string[] = [];
+        let used = 0;
+        for (let i = 0; i < rows.length; i++) {
+          const line = rowLine(rows[i] as Record<string, unknown>, i);
+          if (used + line.length > perTable) break;
+          lines.push(line);
+          used += line.length + 1;
+        }
         parts.push(
-          `#### جدول ${t}\nالأعمدة: ${columns.join(", ")}\nعدد الصفوف المعروضة: ${rows.length}\n${JSON.stringify(rows).slice(0, 300000)}`,
+          `#### جدول ${t}\nالأعمدة: ${columns.join(", ")}\nإجمالي الصفوف المقروءة: ${rows.length} (المعروض هنا: ${lines.length})\n${lines.join("\n")}`,
         );
       } else if (Array.isArray(rows)) {
         parts.push(`#### جدول ${t}\n(لا توجد صفوف متاحة)`);
@@ -126,5 +145,6 @@ export async function snapshot(
       /* table not readable with anon key */
     }
   }
-  return parts.join("\n\n").slice(0, 600000);
+  return parts.join("\n\n").slice(0, totalBudget + 20000);
 }
+

@@ -102,7 +102,7 @@ export async function snapshot(
   key: string,
   tables: string[] = [],
   maxTables = 25,
-  rowsPerTable = 300,
+  rowsPerTable = 2000,
 ) {
   const list = tables.length ? tables : await listTables(url, key);
   if (!list.length) return "";

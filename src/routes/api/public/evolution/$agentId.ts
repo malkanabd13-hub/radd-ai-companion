@@ -207,7 +207,21 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           console.error(e);
           return new Response("ai failed", { status: 200 });
         }
-        if (!reply) return new Response("empty");
+        if (!reply) {
+          // Credits/policy block: tell the owner instead of staying silent.
+          if (aiBlocked && agent.employee_number) {
+            try {
+              await evo.sendText(
+                agent.instance_name,
+                agent.employee_number,
+                `⚠️ توقف مساعد «${agent.ai_name}» عن الرد بسبب نفاد رصيد الذكاء الاصطناعي، يرجى شحن الرصيد.`,
+              );
+            } catch {
+              /* ignore */
+            }
+          }
+          return new Response("empty");
+        }
 
         // Split the internal handoff line out of the customer-facing reply.
         const handoffMatch = reply.match(/\[HANDOFF\]\s*:?\s*(?:ملخص\s*:)?\s*([\s\S]*)$/i);

@@ -118,6 +118,13 @@ export async function snapshot(
         const columns = Object.keys(rows[0] as Record<string, unknown>);
         parts.push(
           `#### جدول ${t}\nالأعمدة: ${columns.join(", ")}\nعدد الصفوف المعروضة: ${rows.length}\n${JSON.stringify(rows).slice(0, 300000)}`,
-...
+        );
+      } else if (Array.isArray(rows)) {
+        parts.push(`#### جدول ${t}\n(لا توجد صفوف متاحة)`);
+      }
+    } catch {
+      /* table not readable with anon key */
+    }
+  }
   return parts.join("\n\n").slice(0, 600000);
 }

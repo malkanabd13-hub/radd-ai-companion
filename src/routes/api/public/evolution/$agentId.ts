@@ -172,6 +172,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
           ...[...(history ?? [])].reverse().map((h) => ({ role: h.role, content: h.content })),
         ];
 
+        let aiBlocked = false;
         async function askAI(content: unknown) {
           const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -185,6 +186,7 @@ export const Route = createFileRoute("/api/public/evolution/$agentId")({
             }),
           });
           if (!res.ok) {
+            if (res.status === 402 || res.status === 403) aiBlocked = true;
             console.error("AI error", res.status, (await res.text()).slice(0, 500));
             return null;
           }
